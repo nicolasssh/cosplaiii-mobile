@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import { Text, View, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
@@ -76,6 +77,18 @@ export default function Camera() {
         }
     };
 
+    const chooseFromGallery = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            const photoUri = result.assets[0].uri;
+            router.push(`/preview?photoUri=${encodeURIComponent(photoUri)}`);
+        }
+    };
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -96,20 +109,23 @@ export default function Camera() {
                     </View>
                 </PinchGestureHandler>
                 <Ionicons
-                    name="camera-reverse-outline"
-                    size={30}
-                    color="#fff"
-                    style={styles.switchIcon}
-                    onPress={() => setType(prevType => prevType === "back" ? "front" : "back")}
-                />
-                <TouchableOpacity style={styles.circle} onPress={takePicture} />
-                <Ionicons
                     name={flashMode === "off" ? "flash-off-outline" : "flash-outline"}
                     size={30}
                     color="#fff"
                     style={styles.flashIcon}
                     onPress={() => setFlashMode(prev => prev === "off" ? "on" : "off")}
                 />
+                <Ionicons
+                    name="camera-reverse-outline"
+                    size={30}
+                    color="#fff"
+                    style={styles.switchIcon}
+                    onPress={() => setType(prevType => prevType === "back" ? "front" : "back")}
+                />
+                <TouchableOpacity style={styles.galleryIcon} onPress={chooseFromGallery}>
+                    <Ionicons name="image-outline" size={30} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.circle} onPress={takePicture} />
             </View>
         </GestureHandlerRootView>
     );
@@ -134,12 +150,17 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 30,
         overflow: "hidden",
     },
+    flashIcon: {
+        position: "absolute",
+        top: 150,
+        left: 40,
+    },
     switchIcon: {
         position: "absolute",
         bottom: 40,
         right: 40,
     },
-    flashIcon: {
+    galleryIcon: {
         position: "absolute",
         bottom: 40,
         left: 40,

@@ -1,10 +1,17 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Alert, Text, ActivityIndicator } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useGlobalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PanGestureHandler, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  useDerivedValue, 
+  withSpring, 
+  withTiming, 
+  interpolate 
+} from "react-native-reanimated";
 
 export default function Preview() {
   const insets = useSafeAreaInsets();
@@ -14,7 +21,27 @@ export default function Preview() {
   const photoUri = glob.photoUri ? glob.photoUri : local.photoUri;
 
   const translateY = useSharedValue(0);
-  const [isLoading, setIsLoading] = useState(false); // État pour le loading spinner
+  const buttonOffset = useDerivedValue(() => translateY.value * 0.5); // Réduction du mouvement des boutons
+  const textOffset = useDerivedValue(() => translateY.value * 0.5);
+  const imageOffset = useDerivedValue(() => translateY.value); // Animation pour l'image
+  const iconOpacity = useDerivedValue(() => interpolate(translateY.value, [0, 50], [0, 1])); // Animation d'opacité
+  const chevronOpacity = useSharedValue(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const showIcon = setTimeout(() => {
+      chevronOpacity.value = withTiming(1, { duration: 200 });
+    }, 800);
+
+    const hideIcon = setTimeout(() => {
+      chevronOpacity.value = withTiming(0, { duration: 200 });
+    }, 3800);
+
+    return () => {
+      clearTimeout(showIcon);
+      clearTimeout(hideIcon);
+    };
+  }, []);
 
   if (!photoUri) {
     return null;
@@ -32,18 +59,39 @@ export default function Preview() {
     }
   };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+  const imageAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: imageOffset.value }],
+  }));
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: buttonOffset.value }],
+  }));
+
+  const hintAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: chevronOpacity.value,
+  }));
+
+  const chevronAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(chevronOpacity.value, [0, 1], [0, 10]),
+      },
+    ],
+  }));
+
+  const iconAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: iconOpacity.value,
+    transform: [{ translateY: textOffset.value * 0.5 }],
   }));
 
   const handleFindInformation = async () => {
-    setIsLoading(true); // Activer le spinner
+    setIsLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", {
-        uri: photoUri, // URI de l'image
-        name: "image.jpg", // Nom du fichier
-        type: "image/jpeg", // Type MIME
+        uri: photoUri,
+        name: "image.jpg",
+        type: "image/jpeg",
       });
 
       const response = await fetch("http://192.168.1.158:8000/recognize", {
@@ -58,66 +106,66 @@ export default function Preview() {
         throw new Error("Erreur lors de l'appel API");
       }
 
-      const result = await response.json(); // Résultat de l'API
+      const result = await response.json();
 
-      console.log(result);
-
-      // Redirection vers la page Result
       router.push({
         pathname: "/result",
         params: {
           character: result.character,
           confidence: result.confidence.toString(),
           image_base64: result.image_base64,
-          photo_take: photoUri
+          photo_take: photoUri,
         },
       });
     } catch (error) {
       console.error("Erreur lors de l'appel API :", error);
       Alert.alert("Erreur", "Impossible de traiter l'image");
     } finally {
-      setIsLoading(false); // Désactiver le spinner
+      setIsLoading(false);
     }
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000', }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000" }}>
       <PanGestureHandler
         onGestureEvent={(event) => handleGesture(event.nativeEvent)}
         onEnded={handleGestureEnd}
       >
-        <Animated.View
-          style={[
-            styles.container,
-            animatedStyle,
-            { paddingTop: insets.top, paddingBottom: insets.bottom },
-          ]}
-        >
-          <Image
+        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+          <Animated.View style={[styles.hintContainer, hintAnimatedStyle]}>
+            <Text style={styles.hintText}>Drag down to cancel</Text>
+            <Animated.View style={chevronAnimatedStyle}>
+              <Ionicons name="chevron-down-outline" size={30} color="#fff" />
+            </Animated.View>
+          </Animated.View>
+          <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
+            <Ionicons name="trash-outline" size={30} color="#fff" />
+          </Animated.View>
+          <Animated.Image
             source={{ uri: photoUri }}
-            style={styles.image}
+            style={[styles.image, imageAnimatedStyle]}
             resizeMode="cover"
           />
-          <View style={styles.buttonContainer}>
+          <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
             <TouchableOpacity style={styles.deleteButton} onPress={() => router.push("/")}>
               <Ionicons name="add-outline" size={30} color="#fff" style={styles.deleteIcon} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.infoButton}
               onPress={handleFindInformation}
-              disabled={isLoading} // Désactive le bouton pendant le chargement
+              disabled={isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="#000" />
               ) : (
                 <>
-                  <Text style={styles.infoText}>Find informations</Text>
+                  <Text style={styles.confirmText}>Find informations</Text>
                   <Ionicons name="sparkles-outline" size={20} color="#000" />
                 </>
               )}
             </TouchableOpacity>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </PanGestureHandler>
     </GestureHandlerRootView>
   );
@@ -127,21 +175,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
-    alignItems: "center",
-    justifyContent: "center",
   },
   image: {
     width: "100%",
     height: "100%",
-    borderRadius: 30,
+    borderRadius: 30
+  },
+  hintContainer: {
+    position: "absolute",
+    top: 80,
+    alignSelf: "center",
+    alignItems: "center",
+    zIndex: 50,
+  },
+  hintText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 0,
+  },
+  iconContainer: {
+    position: "absolute",
+    top: 20,
+    alignSelf: "center",
+    zIndex: 50,
   },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     alignItems: "center",
     width: "90%",
     position: "absolute",
     bottom: 40,
+    marginLeft: '5%'
   },
   deleteButton: {
     width: 60,
@@ -177,9 +243,9 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginLeft: 20,
   },
-  infoText: {
-    fontSize: 18,
-    fontWeight: "600",
+  confirmText: {
     marginRight: 20,
-  },
+    fontSize: 16,
+    fontWeight: 600
+  }
 });

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -9,7 +10,7 @@ const slides = [
   {
     title: "Take a picture",
     emoji: "📸",
-    text: "Take a picture of your favorite cosplay",
+    text: "Take or select a picture of your favorite cosplay",
   },
   {
     title: "Ask for infos",
@@ -27,19 +28,31 @@ export default function Onboarding() {
   const { width, height } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
-  const [_, requestPermission] = useCameraPermissions();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [galleryPermission, requestGalleryPermission] = ImagePicker.useMediaLibraryPermissions();
 
   const handleCameraPermission = async () => {
     if (currentIndex === 0) {
-      const { status } = await requestPermission();
-      if (status !== "granted") return;
+      // Demander l'accès à la caméra
+      const cameraStatus = await requestCameraPermission();
+      if (cameraStatus.status !== "granted") {
+        Alert.alert("Permission requise", "L'accès à la caméra est nécessaire pour utiliser l'application.");
+        return;
+      }
+
+      // Demander l'accès à la galerie
+      const galleryStatus = await requestGalleryPermission();
+      if (galleryStatus.status !== "granted") {
+        Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour utiliser l'application.");
+        return;
+      }
     }
     handleNextSlide();
   };
 
   const handleNextSlide = async () => {
     if (currentIndex < slides.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
     } else {
       await AsyncStorage.setItem("hasLaunched", "true");
       router.replace("/camera");
@@ -47,22 +60,22 @@ export default function Onboarding() {
   };
 
   return (
-      <View style={styles.container}>
-        <View style={[styles.slide, { width, height: height * 0.7 }]}>
-          <Text style={styles.emoji}>{slides[currentIndex].emoji}</Text>
-          <Text style={styles.title}>{slides[currentIndex].title}</Text>
-          <Text style={styles.text}>{slides[currentIndex].text}</Text>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleCameraPermission}>
-          <Text style={styles.buttonText}>
-            {currentIndex < slides.length - 1 ? "Next" : "Confirm"}
-          </Text>
-          {currentIndex < slides.length - 1 && (
-              <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
-          )}
-        </TouchableOpacity>
+    <View style={styles.container}>
+      <View style={[styles.slide, { width, height: height * 0.7 }]}>
+        <Text style={styles.emoji}>{slides[currentIndex].emoji}</Text>
+        <Text style={styles.title}>{slides[currentIndex].title}</Text>
+        <Text style={styles.text}>{slides[currentIndex].text}</Text>
       </View>
+
+      <TouchableOpacity style={styles.button} onPress={handleCameraPermission}>
+        <Text style={styles.buttonText}>
+          {currentIndex < slides.length - 1 ? "Next" : "Confirm"}
+        </Text>
+        {currentIndex < slides.length - 1 && (
+          <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
+        )}
+      </TouchableOpacity>
+    </View>
   );
 }
 
