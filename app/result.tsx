@@ -9,7 +9,7 @@ export default function Result() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { character, confidence, image_url } = params;
+  const { character, confidence, image_base64 } = params;
 
   // Charger la police Shrikhand
   const [fontsLoaded] = useFonts({
@@ -20,13 +20,11 @@ export default function Result() {
     return null; // Affichez un écran de chargement si nécessaire
   }
 
-  console.log(`http://192.168.1.158:8000/${image_url}`)
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {image_url && (
+      {image_base64 && (
         <Image
-          source={{ uri: `http://192.168.1.158:8000/${image_url}` }}
+          source={{ uri: `data:image/png;base64,${image_base64}`}}
           style={styles.characterImage}
           resizeMode="cover"
         />

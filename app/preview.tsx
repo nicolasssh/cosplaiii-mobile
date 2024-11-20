@@ -1,5 +1,5 @@
-import React from "react";
-import { View, StyleSheet, Image, TouchableOpacity, Alert, Text } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet, Image, TouchableOpacity, Alert, Text, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useGlobalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +14,7 @@ export default function Preview() {
   const photoUri = glob.photoUri ? glob.photoUri : local.photoUri;
 
   const translateY = useSharedValue(0);
+  const [isLoading, setIsLoading] = useState(false); // État pour le loading spinner
 
   if (!photoUri) {
     return null;
@@ -36,6 +37,7 @@ export default function Preview() {
   }));
 
   const handleFindInformation = async () => {
+    setIsLoading(true); // Activer le spinner
     try {
       const formData = new FormData();
       formData.append("file", {
@@ -43,7 +45,7 @@ export default function Preview() {
         name: "image.jpg", // Nom du fichier
         type: "image/jpeg", // Type MIME
       });
-  
+
       const response = await fetch("http://192.168.1.158:8000/recognize", {
         method: "POST",
         body: formData,
@@ -51,32 +53,34 @@ export default function Preview() {
           "Content-Type": "multipart/form-data",
         },
       });
-  
+
       if (!response.ok) {
         throw new Error("Erreur lors de l'appel API");
       }
-  
+
       const result = await response.json(); // Résultat de l'API
 
-      console.log(result)
-  
+      console.log(result);
+
       // Redirection vers la page Result
       router.push({
         pathname: "/result",
         params: {
           character: result.character,
           confidence: result.confidence.toString(),
-          image_url: result.image_url
+          image_base64: result.image_base64,
         },
       });
     } catch (error) {
       console.error("Erreur lors de l'appel API :", error);
       Alert.alert("Erreur", "Impossible de traiter l'image");
+    } finally {
+      setIsLoading(false); // Désactiver le spinner
     }
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000', }}>
       <PanGestureHandler
         onGestureEvent={(event) => handleGesture(event.nativeEvent)}
         onEnded={handleGestureEnd}
@@ -95,11 +99,21 @@ export default function Preview() {
           />
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.deleteButton} onPress={() => router.push("/")}>
-                <Ionicons name="add-outline" size={30} color="#fff" style={styles.deleteIcon} />
+              <Ionicons name="add-outline" size={30} color="#fff" style={styles.deleteIcon} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.infoButton} onPress={handleFindInformation}>
-                <Text style={styles.infoText}>Find informations</Text>
-                <Ionicons name="sparkles-outline" size={20} color="#000" />
+            <TouchableOpacity
+              style={styles.infoButton}
+              onPress={handleFindInformation}
+              disabled={isLoading} // Désactive le bouton pendant le chargement
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#000" />
+              ) : (
+                <>
+                  <Text style={styles.infoText}>Find informations</Text>
+                  <Ionicons name="sparkles-outline" size={20} color="#000" />
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -164,7 +178,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 18,
-    fontWeight: 600,
-    marginRight: 20
-  }
+    fontWeight: "600",
+    marginRight: 20,
+  },
 });
