@@ -39,13 +39,6 @@ export default function Onboarding() {
         Alert.alert("Permission requise", "L'accès à la caméra est nécessaire pour utiliser l'application.");
         return;
       }
-
-      // Demander l'accès à la galerie
-      const galleryStatus = await requestGalleryPermission();
-      if (galleryStatus.status !== "granted") {
-        Alert.alert("Permission requise", "L'accès à la galerie est nécessaire pour utiliser l'application.");
-        return;
-      }
     }
     handleNextSlide();
   };
