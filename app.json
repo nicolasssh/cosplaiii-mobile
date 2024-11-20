@@ -25,7 +25,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "package": "com.cosplaiiii.cosplaiiii"
     },
     "web": {
       "bundler": "metro",
@@ -51,6 +52,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "042a7fdc-ea74-41e2-bd76-ac3c625e3cbe"
+      }
+    },
+    "owner": "nicolasssh"
   }
 }

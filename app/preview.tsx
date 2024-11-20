@@ -69,6 +69,7 @@ export default function Preview() {
           character: result.character,
           confidence: result.confidence.toString(),
           image_base64: result.image_base64,
+          photo_take: photoUri
         },
       });
     } catch (error) {
