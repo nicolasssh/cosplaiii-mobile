@@ -1,40 +1,33 @@
-import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator } from "react-native";
-import { Slot, useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
+import { useCallback } from "react";
+import * as SplashScreen from "expo-splash-screen";
+
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const router = useRouter();
-  const [isReady, setIsReady] = useState(false); // État pour gérer la préparation
+    const [fontsLoaded] = useFonts({
+        Shrikhand: Shrikhand_400Regular,
+    });
 
-  useEffect(() => {
-    const checkFirstLaunch = async () => {
-      try {
-        const hasLaunched = await AsyncStorage.getItem("hasLaunched");
-        if (!hasLaunched) {
-          await AsyncStorage.setItem("hasLaunched", "true");
-          router.replace("/onboarding"); // Rediriger vers onboarding
-        } else {
-          router.replace("/"); // Rediriger vers la page principale
+    const onLayoutRootView = useCallback(async () => {
+        if (fontsLoaded) {
+            await SplashScreen.hideAsync();
         }
-      } catch (error) {
-        console.error("Erreur lors de la vérification de la première ouverture :", error);
-      } finally {
-        setIsReady(true); // Marquer comme prêt après la vérification
-      }
-    };
+    }, [fontsLoaded]);
 
-    checkFirstLaunch();
-  }, [router]);
+    if (!fontsLoaded) return null;
 
-  if (!isReady) {
-    // Retourne un écran de chargement tant que la vérification est en cours
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#1e90ff" />
-      </View>
+        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+            <Stack>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="camera" options={{ headerShown: false }} />
+                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+                <Stack.Screen name="preview" options={{ headerShown: false }} />
+                <Stack.Screen name="result" options={{ headerShown: false }} />
+            </Stack>
+        </GestureHandlerRootView>
     );
-  }
-
-  return <Slot />; // Affiche les pages une fois que tout est prêt
 }

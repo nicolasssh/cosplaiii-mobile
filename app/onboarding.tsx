@@ -1,18 +1,9 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const { width, height } = Dimensions.get("window");
 
 const slides = [
   {
@@ -33,56 +24,45 @@ const slides = [
 ];
 
 export default function Onboarding() {
+  const { width, height } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
-  const [permission, requestPermission] = useCameraPermissions();
+  const [_, requestPermission] = useCameraPermissions();
 
-  // Vérifie les autorisations de la caméra sur la première slide
   const handleCameraPermission = async () => {
-    if (currentIndex === 0 && (!permission || !permission.granted)) {
+    if (currentIndex === 0) {
       const { status } = await requestPermission();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission refusée",
-          "Vous devez autoriser l'accès à la caméra pour continuer."
-        );
-        return;
-      }
+      if (status !== "granted") return;
     }
     handleNextSlide();
   };
 
   const handleNextSlide = async () => {
     if (currentIndex < slides.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+      setCurrentIndex(prev => prev + 1);
     } else {
-      // Marquer comme "déjà lancé" après avoir confirmé
       await AsyncStorage.setItem("hasLaunched", "true");
-      router.push("/"); // Redirige vers la page principale
+      router.replace("/camera");
     }
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.slide}>
-        <Text style={styles.emoji}>{slides[currentIndex].emoji}</Text>
-        <Text style={styles.title}>{slides[currentIndex].title}</Text>
-        <Text style={styles.text}>{slides[currentIndex].text}</Text>
-      </View>
+      <View style={styles.container}>
+        <View style={[styles.slide, { width, height: height * 0.7 }]}>
+          <Text style={styles.emoji}>{slides[currentIndex].emoji}</Text>
+          <Text style={styles.title}>{slides[currentIndex].title}</Text>
+          <Text style={styles.text}>{slides[currentIndex].text}</Text>
+        </View>
 
-      {/* Bouton "Next" ou "Confirm" */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleCameraPermission}
-      >
-        <Text style={styles.buttonText}>
-          {currentIndex < slides.length - 1 ? "Next" : "Confirm"}
-        </Text>
-        {currentIndex < slides.length - 1 && (
-          <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
-        )}
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.button} onPress={handleCameraPermission}>
+          <Text style={styles.buttonText}>
+            {currentIndex < slides.length - 1 ? "Next" : "Confirm"}
+          </Text>
+          {currentIndex < slides.length - 1 && (
+              <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
+          )}
+        </TouchableOpacity>
+      </View>
   );
 }
 
@@ -97,8 +77,6 @@ const styles = StyleSheet.create({
   slide: {
     alignItems: "center",
     justifyContent: "center",
-    width,
-    height: height * 0.7,
   },
   emoji: {
     fontSize: 60,
