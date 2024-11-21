@@ -9,8 +9,36 @@ import * as SplashScreen from "expo-splash-screen";
 import { Ionicons } from "@expo/vector-icons";
 import { PanGestureHandler, GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
+import { getLocales } from 'expo-localization';
+import { I18n } from 'i18n-js';
 
 SplashScreen.preventAutoHideAsync();
+
+const translations = {
+  en: { 
+    "Drag up to show gallery" : "Drag up to show gallery"
+   },
+  fr: { 
+    "Drag up to show gallery" : "Faites glisser pour afficher la galerie"
+   },
+  it: { 
+    "Drag up to show gallery" : "Trascina per mostrare la galleria"
+   },
+  es: { 
+    "Drag up to show gallery" : "Desliza para mostrar la galería"
+   },
+  pt: { 
+    "Drag up to show gallery" :  "Arraste para mostrar a galeria"
+   },
+  de: { 
+    "Drag up to show gallery" : "Zum Anzeigen der Galerie ziehen"
+  },
+};
+const i18n = new I18n(translations);
+
+i18n.locale = getLocales()[0].languageCode ?? 'en';
+
+i18n.enableFallback = true;
 
 export default function Camera() {
     const router = useRouter();
@@ -162,7 +190,7 @@ export default function Camera() {
                     {/* Texte Drag Up avec animation */}
                     <Animated.View style={[styles.dragTextContainer, { opacity: opacityAnim }]}>
                         <Ionicons name="chevron-up-outline" size={30} color="#fff" />
-                        <Text style={styles.dragText}>Drag up to show gallery</Text>
+                        <Text style={styles.dragText}>{i18n.t("Drag up to show gallery")}</Text>
                     </Animated.View>
                 </View>
             </PanGestureHandler>

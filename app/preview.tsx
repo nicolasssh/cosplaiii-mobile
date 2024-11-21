@@ -12,11 +12,45 @@ import Animated, {
   withTiming,
   interpolate
 } from "react-native-reanimated";
+import { getLocales } from 'expo-localization';
+import { I18n } from 'i18n-js';
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/recognize`;
 const DRAG_THRESHOLD = 300;
 const CHEVRON_ANIMATION_DELAY = 800;
 const CHEVRON_HIDE_DELAY = 3800;
+
+const translations = {
+  en: { 
+    "Find informations" : "Find informations",
+    "Drag down to cancel" : "Drag down to cancel"
+   },
+  fr: { 
+    "Find informations" : "Trouver des informations",
+    "Drag down to cancel" : "Faites glisser pour annuler"
+   },
+  it: { 
+    "Find informations" : "Trova informazioni",
+    "Drag down to cancel" : "Trascina per annullare"
+   },
+  es: { 
+    "Find informations" : "Encontrar información",
+    "Drag down to cancel" : "Desliza para cancelar"
+   },
+  pt: { 
+    "Find informations" : "Encontrar informações",
+    "Drag down to cancel" : "Arraste para cancelar"
+   },
+  de: { 
+    "Find informations" : "Informationen finden",
+    "Drag down to cancel" : "Zum Abbrechen ziehen"
+  },
+};
+const i18n = new I18n(translations);
+
+i18n.locale = getLocales()[0].languageCode ?? 'en';
+
+i18n.enableFallback = true;
 
 interface ApiResponse {
   character: string;
@@ -134,7 +168,7 @@ export default function Preview() {
         >
           <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
             <Animated.View style={[styles.hintContainer, animatedStyles.hint]}>
-              <Text style={styles.hintText}>Drag down to cancel</Text>
+              <Text style={styles.hintText}>{i18n.t("Drag down to cancel")}</Text>
               <Animated.View style={animatedStyles.chevron}>
                 <Ionicons name="chevron-down-outline" size={30} color="#fff" />
               </Animated.View>
@@ -164,7 +198,7 @@ export default function Preview() {
                     <ActivityIndicator size="small" color="#000" />
                 ) : (
                     <>
-                      <Text style={styles.confirmText}>Find informations</Text>
+                      <Text style={styles.confirmText}>{i18n.t("Find informations")}</Text>
                       <Ionicons name="sparkles-outline" size={20} color="#000" />
                     </>
                 )}
