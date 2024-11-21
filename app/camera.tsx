@@ -7,7 +7,11 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import * as SplashScreen from "expo-splash-screen";
 import { Ionicons } from "@expo/vector-icons";
-import { PanGestureHandler, GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+    PanGestureHandler,
+    GestureHandlerRootView,
+    PinchGestureHandler
+} from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 import { getLocales } from 'expo-localization';
 import { I18n } from 'i18n-js';
@@ -152,7 +156,7 @@ export default function Camera() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <PanGestureHandler onGestureEvent={handleDrag}>
+            <PinchGestureHandler onGestureEvent={handlePinchGesture}>
                 <View style={[styles.container, { paddingTop: insets.top }]}>
                     <Text style={styles.header}>cosplaiiii.</Text>
                     <View style={{ flex: 1 }}>
@@ -193,7 +197,7 @@ export default function Camera() {
                         <Text style={styles.dragText}>{i18n.t("Drag up to show gallery")}</Text>
                     </Animated.View>
                 </View>
-            </PanGestureHandler>
+            </PinchGestureHandler>
         </GestureHandlerRootView>
     );
 }
