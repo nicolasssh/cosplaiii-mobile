@@ -42,8 +42,10 @@ export default function Result() {
         type: "image/jpeg",
       } as unknown as Blob);
 
+      const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
       const response = await fetch(
-          `http://192.168.1.50:8000/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
+          `${API_URL}/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
           {
             method: "POST",
             body: formData,

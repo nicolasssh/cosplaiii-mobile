@@ -18,9 +18,11 @@ export default function RootLayout() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/docs`;
+
   const checkApiStatus = useCallback(async () => {
     try {
-      const response = await axios.get("http://192.168.1.50:8000/docs"); // Remplace par ton URL d'API
+      const response = await axios.get(API_URL); // Remplace par ton URL d'API
       if (response.status === 200) {
         setIsApiHealthy(true);
       } else {
