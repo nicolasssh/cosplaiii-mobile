@@ -5,60 +5,55 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import { Ionicons } from "@expo/vector-icons";
 
+interface ResultResponse {
+  character: string;
+  confidence: number;
+  image_base64: string;
+}
+
 export default function Result() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
+  const { character, confidence, image_base64, photo_take } = useLocalSearchParams();
   const router = useRouter();
-  const { character, confidence, image_base64, photo_take } = params;
+  const [fontsLoaded] = useFonts({ Shrikhand: Shrikhand_400Regular });
 
   const [backgroundColor, setBackgroundColor] = useState("#000");
-  const [newResponse, setNewResponse] = useState(null);
+  const [newResponse, setNewResponse] = useState<ResultResponse | null>(null);
   const [showConfirm, setShowConfirm] = useState(true);
-  const [loading, setLoading] = useState(false); // État pour le spinner de chargement
-
-  // Charger la police Shrikhand
-  const [fontsLoaded] = useFonts({
-    Shrikhand: Shrikhand_400Regular,
-  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Si la confidence est supérieure à 0.99, cacher le bloc de confirmation
-    if (parseFloat(confidence) > 0.9999) {
-      setBackgroundColor("green"); // Changer le fond en vert
+    if (parseFloat(confidence as string) > 0.9999) {
+      setBackgroundColor("green");
       setShowConfirm(false);
     }
   }, [confidence]);
 
-  if (!fontsLoaded) {
-    return null; // Affichez un écran de chargement si nécessaire
-  }
+  if (!fontsLoaded) return null;
 
-  const handleValidation = async (isTrue) => {
-    setLoading(true); // Activer le spinner
+  const handleValidation = async (isTrue: boolean) => {
+    setLoading(true);
     try {
       const currentCharacter = newResponse?.character || character;
-
       const formData = new FormData();
       formData.append("file", {
-        uri: photo_take,
+        uri: photo_take as string,
         name: "image.jpg",
         type: "image/jpeg",
-      });
+      } as unknown as Blob);
 
       const response = await fetch(
-        `http://192.168.1.50:8000/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
-        {
-          method: "POST",
-          body: formData,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+          `http://192.168.1.50:8000/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
+          {
+            method: "POST",
+            body: formData,
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
       );
 
-      if (!response.ok) {
-        throw new Error("Erreur lors de l'appel API");
-      }
+      if (!response.ok) throw new Error("API Error");
 
       const result = await response.json();
 
@@ -72,73 +67,72 @@ export default function Result() {
         setShowConfirm(false);
       }
     } catch (error) {
-      console.error("Erreur lors de la validation :", error);
-      Alert.alert("Erreur", "Une erreur s'est produite lors de la validation.");
+      console.error("Validation error:", error);
+      Alert.alert("Error", "An error occurred during validation.");
     } finally {
-      setLoading(false); // Désactiver le spinner
+      setLoading(false);
     }
   };
 
+  const renderCharacterInfo = () => {
+    const data = newResponse || { character, confidence, image_base64 };
+    return (
+        <>
+          {data.image_base64 && (
+              <Image
+                  source={{ uri: `data:image/png;base64,${data.image_base64}` }}
+                  style={styles.characterImage}
+                  resizeMode="cover"
+              />
+          )}
+          <Text style={styles.characterText}>{data.character}</Text>
+          <Text style={styles.confidenceText}>
+            {`sure at ${(parseFloat(data.confidence as unknown as string) * 100).toFixed(2)}%`}
+          </Text>
+        </>
+    );
+  };
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor }]}>
-      {newResponse ? (
-        <>
-          {newResponse.image_base64 && (
-            <Image
-              source={{ uri: `data:image/png;base64,${newResponse.image_base64}` }}
-              style={styles.characterImage}
-              resizeMode="cover"
-            />
-          )}
-          <Text style={styles.characterText}>{newResponse.character}</Text>
-          <Text style={styles.confidenceText}>
-            {`sure at ${(parseFloat(newResponse.confidence) * 100).toFixed(2)}%`}
-          </Text>
-        </>
-      ) : (
-        <>
-          {image_base64 && (
-            <Image
-              source={{ uri: `data:image/png;base64,${image_base64}` }}
-              style={styles.characterImage}
-              resizeMode="cover"
-            />
-          )}
-          <Text style={styles.characterText}>{character}</Text>
-          <Text style={styles.confidenceText}>
-            {`sure at ${(parseFloat(confidence) * 100).toFixed(2)}%`}
-          </Text>
-        </>
-      )}
-      {showConfirm ? (
-        <View style={styles.confirm}>
-          {loading ? (
-            <ActivityIndicator size="large" color="#000" />
-          ) : (
-            <>
-              <Text style={styles.confirmText}>Is this response correct?</Text>
-              <View style={styles.confirmButtons}>
-                <TouchableOpacity
-                  style={styles.confirmButton}
-                  onPress={() => handleValidation(true)}
-                >
-                  <Ionicons name="thumbs-up-outline" size={40} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.confirmButton}
-                  onPress={() => handleValidation(false)}
-                >
-                  <Ionicons name="thumbs-down-outline" size={40} color="#000" />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
-        </View>
-      ) : null}
-      <TouchableOpacity style={styles.closeButton} onPress={() => router.push("/")}>
-        <Ionicons name="add-outline" style={styles.closeIcon} size={40} color="#FFF" />
-      </TouchableOpacity>
-    </View>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor }]}>
+        {renderCharacterInfo()}
+        {showConfirm && (
+            <View style={styles.confirm}>
+              {loading ? (
+                  <ActivityIndicator size="large" color="#000" />
+              ) : (
+                  <>
+                    <Text style={styles.confirmText}>Is this response correct?</Text>
+                    <View style={styles.confirmButtons}>
+                      <TouchableOpacity
+                          style={styles.confirmButton}
+                          onPress={() => handleValidation(true)}
+                      >
+                        <Ionicons name="thumbs-up-outline" size={40} color="#000" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                          style={styles.confirmButton}
+                          onPress={() => handleValidation(false)}
+                      >
+                        <Ionicons name="thumbs-down-outline" size={40} color="#000" />
+                      </TouchableOpacity>
+                    </View>
+                  </>
+              )}
+            </View>
+        )}
+        <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => router.push("/")}
+        >
+          <Ionicons
+              name="add-outline"
+              style={styles.closeIcon}
+              size={40}
+              color="#FFF"
+          />
+        </TouchableOpacity>
+      </View>
   );
 }
 
@@ -153,6 +147,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: "#fff",
     marginBottom: 10,
+    textAlign: "center",
   },
   confidenceText: {
     fontSize: 16,
@@ -166,6 +161,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   closeButton: {
+    position: "absolute",
+    bottom: 40,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -179,8 +176,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
-    position: "absolute",
-    bottom: 40,
   },
   closeIcon: {
     transform: [{ rotate: "45deg" }],

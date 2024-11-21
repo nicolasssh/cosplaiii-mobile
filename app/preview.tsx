@@ -1,88 +1,93 @@
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useGlobalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { PanGestureHandler, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  useDerivedValue, 
-  withSpring, 
-  withTiming, 
-  interpolate 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  withSpring,
+  withTiming,
+  interpolate
 } from "react-native-reanimated";
+
+const API_URL = "http://192.168.1.50:8000/recognize";
+const DRAG_THRESHOLD = 300;
+const CHEVRON_ANIMATION_DELAY = 800;
+const CHEVRON_HIDE_DELAY = 3800;
+
+interface ApiResponse {
+  character: string;
+  confidence: number;
+  image_base64: string;
+}
 
 export default function Preview() {
   const insets = useSafeAreaInsets();
-  const glob = useGlobalSearchParams();
-  const local = useLocalSearchParams();
+  const { photoUri } = useLocalSearchParams();
   const router = useRouter();
-  const photoUri = glob.photoUri ? glob.photoUri : local.photoUri;
-
-  const translateY = useSharedValue(0);
-  const buttonOffset = useDerivedValue(() => translateY.value * 0.5); // Réduction du mouvement des boutons
-  const textOffset = useDerivedValue(() => translateY.value * 0.5);
-  const imageOffset = useDerivedValue(() => translateY.value); // Animation pour l'image
-  const iconOpacity = useDerivedValue(() => interpolate(translateY.value, [0, 50], [0, 1])); // Animation d'opacité
-  const chevronOpacity = useSharedValue(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const showIcon = setTimeout(() => {
-      chevronOpacity.value = withTiming(1, { duration: 200 });
-    }, 800);
+  const translateY = useSharedValue(0);
+  const buttonOffset = useDerivedValue(() => translateY.value * 0.5);
+  const textOffset = useDerivedValue(() => translateY.value * 0.5);
+  const imageOffset = useDerivedValue(() => translateY.value);
+  const iconOpacity = useDerivedValue(() =>
+      interpolate(translateY.value, [0, 50], [0, 1])
+  );
+  const chevronOpacity = useSharedValue(0);
 
-    const hideIcon = setTimeout(() => {
+  useEffect(() => {
+    const showChevron = setTimeout(() => {
+      chevronOpacity.value = withTiming(1, { duration: 200 });
+    }, CHEVRON_ANIMATION_DELAY);
+
+    const hideChevron = setTimeout(() => {
       chevronOpacity.value = withTiming(0, { duration: 200 });
-    }, 3800);
+    }, CHEVRON_HIDE_DELAY);
 
     return () => {
-      clearTimeout(showIcon);
-      clearTimeout(hideIcon);
+      clearTimeout(showChevron);
+      clearTimeout(hideChevron);
     };
   }, []);
 
-  if (!photoUri) {
-    return null;
-  }
+  if (!photoUri) return null;
 
-  const handleGesture = ({ translationY }: any) => {
-    translateY.value = translationY > 0 ? translationY : 0;
+  const animatedStyles = {
+    image: useAnimatedStyle(() => ({
+      transform: [{ translateY: imageOffset.value }],
+    })),
+    button: useAnimatedStyle(() => ({
+      transform: [{ translateY: buttonOffset.value }],
+    })),
+    hint: useAnimatedStyle(() => ({
+      opacity: chevronOpacity.value,
+    })),
+    chevron: useAnimatedStyle(() => ({
+      transform: [{
+        translateY: interpolate(chevronOpacity.value, [0, 1], [0, 10]),
+      }],
+    })),
+    icon: useAnimatedStyle(() => ({
+      opacity: iconOpacity.value,
+      transform: [{ translateY: textOffset.value * 0.5 }],
+    })),
+  };
+
+  const handleGesture = ({ translationY }: { translationY: number }) => {
+    translateY.value = Math.max(0, translationY);
   };
 
   const handleGestureEnd = () => {
-    if (translateY.value > 300) {
+    if (translateY.value > DRAG_THRESHOLD) {
       router.push("/");
     } else {
       translateY.value = withSpring(0);
     }
   };
-
-  const imageAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: imageOffset.value }],
-  }));
-
-  const buttonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: buttonOffset.value }],
-  }));
-
-  const hintAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: chevronOpacity.value,
-  }));
-
-  const chevronAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: interpolate(chevronOpacity.value, [0, 1], [0, 10]),
-      },
-    ],
-  }));
-
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: iconOpacity.value,
-    transform: [{ translateY: textOffset.value * 0.5 }],
-  }));
 
   const handleFindInformation = async () => {
     setIsLoading(true);
@@ -92,21 +97,17 @@ export default function Preview() {
         uri: photoUri,
         name: "image.jpg",
         type: "image/jpeg",
-      });
+      } as unknown as Blob);
 
-      const response = await fetch("http://192.168.1.50:8000/recognize", {
+      const response = await fetch(API_URL, {
         method: "POST",
         body: formData,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (!response.ok) {
-        throw new Error("Erreur lors de l'appel API");
-      }
+      if (!response.ok) throw new Error("API Error");
 
-      const result = await response.json();
+      const result: ApiResponse = await response.json();
 
       router.push({
         pathname: "/result",
@@ -118,60 +119,68 @@ export default function Preview() {
         },
       });
     } catch (error) {
-      console.error("Erreur lors de l'appel API :", error);
-      Alert.alert("Erreur", "Impossible de traiter l'image");
+      console.error("API Error:", error);
+      Alert.alert("Error", "Unable to process the image");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000" }}>
-      <PanGestureHandler
-        onGestureEvent={(event) => handleGesture(event.nativeEvent)}
-        onEnded={handleGestureEnd}
-      >
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-          <Animated.View style={[styles.hintContainer, hintAnimatedStyle]}>
-            <Text style={styles.hintText}>Drag down to cancel</Text>
-            <Animated.View style={chevronAnimatedStyle}>
-              <Ionicons name="chevron-down-outline" size={30} color="#fff" />
+      <GestureHandlerRootView style={styles.root}>
+        <PanGestureHandler
+            onGestureEvent={(event) => handleGesture(event.nativeEvent)}
+            onEnded={handleGestureEnd}
+        >
+          <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+            <Animated.View style={[styles.hintContainer, animatedStyles.hint]}>
+              <Text style={styles.hintText}>Drag down to cancel</Text>
+              <Animated.View style={animatedStyles.chevron}>
+                <Ionicons name="chevron-down-outline" size={30} color="#fff" />
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
-          <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
-            <Ionicons name="trash-outline" size={30} color="#fff" />
-          </Animated.View>
-          <Animated.Image
-            source={{ uri: photoUri }}
-            style={[styles.image, imageAnimatedStyle]}
-            resizeMode="cover"
-          />
-          <Animated.View style={[styles.buttonContainer, buttonAnimatedStyle]}>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => router.push("/")}>
-              <Ionicons name="add-outline" size={30} color="#fff" style={styles.deleteIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.infoButton}
-              onPress={handleFindInformation}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#000" />
-              ) : (
-                <>
-                  <Text style={styles.confirmText}>Find informations</Text>
-                  <Ionicons name="sparkles-outline" size={20} color="#000" />
-                </>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </PanGestureHandler>
-    </GestureHandlerRootView>
+
+            <Animated.View style={[styles.iconContainer, animatedStyles.icon]}>
+              <Ionicons name="trash-outline" size={30} color="#fff" />
+            </Animated.View>
+
+            <Animated.Image
+                source={{ uri: photoUri as string }}
+                style={[styles.image, animatedStyles.image]}
+                resizeMode="cover"
+            />
+
+            <Animated.View style={[styles.buttonContainer, animatedStyles.button]}>
+              <TouchableOpacity style={styles.deleteButton} onPress={() => router.push("/")}>
+                <Ionicons name="add-outline" size={30} color="#fff" style={styles.deleteIcon} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                  style={styles.infoButton}
+                  onPress={handleFindInformation}
+                  disabled={isLoading}
+              >
+                {isLoading ? (
+                    <ActivityIndicator size="small" color="#000" />
+                ) : (
+                    <>
+                      <Text style={styles.confirmText}>Find informations</Text>
+                      <Ionicons name="sparkles-outline" size={20} color="#000" />
+                    </>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </PanGestureHandler>
+      </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
   container: {
     flex: 1,
     backgroundColor: "#000",
@@ -179,7 +188,7 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-    borderRadius: 30
+    borderRadius: 30,
   },
   hintContainer: {
     position: "absolute",
@@ -192,7 +201,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 0,
   },
   iconContainer: {
     position: "absolute",
@@ -207,7 +215,7 @@ const styles = StyleSheet.create({
     width: "90%",
     position: "absolute",
     bottom: 40,
-    marginLeft: '5%'
+    marginLeft: '5%',
   },
   deleteButton: {
     width: 60,
@@ -246,6 +254,6 @@ const styles = StyleSheet.create({
   confirmText: {
     marginRight: 20,
     fontSize: 16,
-    fontWeight: 600
-  }
+    fontWeight: "600",
+  },
 });

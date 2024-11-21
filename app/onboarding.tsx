@@ -2,11 +2,16 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const slides = [
+interface Slide {
+  title: string;
+  emoji: string;
+  text: string;
+}
+
+const SLIDES: Slide[] = [
   {
     title: "Take a picture",
     emoji: "📸",
@@ -28,47 +33,52 @@ export default function Onboarding() {
   const { width, height } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [galleryPermission, requestGalleryPermission] = ImagePicker.useMediaLibraryPermissions();
+  const [_, requestCameraPermission] = useCameraPermissions();
 
-  const handleCameraPermission = async () => {
+  const handlePermissionsAndNext = async () => {
     if (currentIndex === 0) {
-      // Demander l'accès à la caméra
-      const cameraStatus = await requestCameraPermission();
-      if (cameraStatus.status !== "granted") {
-        Alert.alert("Permission requise", "L'accès à la caméra est nécessaire pour utiliser l'application.");
+      const { status } = await requestCameraPermission();
+      if (status !== "granted") {
+        Alert.alert(
+            "Permission Required",
+            "Camera access is required to use this app."
+        );
         return;
       }
     }
-    handleNextSlide();
-  };
 
-  const handleNextSlide = async () => {
-    if (currentIndex < slides.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    if (currentIndex < SLIDES.length - 1) {
+      setCurrentIndex(prev => prev + 1);
     } else {
       await AsyncStorage.setItem("hasLaunched", "true");
       router.replace("/camera");
     }
   };
 
-  return (
-    <View style={styles.container}>
+  const renderSlide = () => (
       <View style={[styles.slide, { width, height: height * 0.7 }]}>
-        <Text style={styles.emoji}>{slides[currentIndex].emoji}</Text>
-        <Text style={styles.title}>{slides[currentIndex].title}</Text>
-        <Text style={styles.text}>{slides[currentIndex].text}</Text>
+        <Text style={styles.emoji}>{SLIDES[currentIndex].emoji}</Text>
+        <Text style={styles.title}>{SLIDES[currentIndex].title}</Text>
+        <Text style={styles.text}>{SLIDES[currentIndex].text}</Text>
       </View>
+  );
 
-      <TouchableOpacity style={styles.button} onPress={handleCameraPermission}>
+  const renderButton = () => (
+      <TouchableOpacity style={styles.button} onPress={handlePermissionsAndNext}>
         <Text style={styles.buttonText}>
-          {currentIndex < slides.length - 1 ? "Next" : "Confirm"}
+          {currentIndex < SLIDES.length - 1 ? "Next" : "Confirm"}
         </Text>
-        {currentIndex < slides.length - 1 && (
-          <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
+        {currentIndex < SLIDES.length - 1 && (
+            <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
         )}
       </TouchableOpacity>
-    </View>
+  );
+
+  return (
+      <View style={styles.container}>
+        {renderSlide()}
+        {renderButton()}
+      </View>
   );
 }
 
@@ -99,6 +109,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     paddingHorizontal: 20,
+    opacity: 0.8,
   },
   button: {
     flexDirection: "row",
@@ -108,10 +119,16 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 15,
     paddingHorizontal: 40,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "600",
     marginRight: 10,
   },
 });

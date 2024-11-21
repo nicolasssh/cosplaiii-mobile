@@ -3,19 +3,20 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
-import axios from "axios"; // Librairie pour effectuer des requêtes HTTP
+import axios from "axios";
 
-// Empêcher le splash screen de disparaître immédiatement
+const commonScreenOptions = {
+  headerShown: false,
+  gestureEnabled: false,
+};
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    Shrikhand: Shrikhand_400Regular,
-  });
-
-  const router = useRouter(); // Utilisé pour rediriger l'utilisateur
-  const pathname = usePathname(); // Récupère la route actuelle
-  const [isApiHealthy, setIsApiHealthy] = useState(true); // État pour savoir si l'API est fonctionnelle
+  const [fontsLoaded] = useFonts({ Shrikhand: Shrikhand_400Regular });
+  const [isApiHealthy, setIsApiHealthy] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const checkApiStatus = useCallback(async () => {
     try {
@@ -26,42 +27,34 @@ export default function RootLayout() {
         throw new Error("API non fonctionnelle");
       }
     } catch (error) {
-      console.error("Erreur lors de la vérification de l'API :", error);
+      console.error("API Health Check Error:", error);
       setIsApiHealthy(false);
-      router.push("/error"); // Redirige vers la page d'erreur
+      router.push("/error");
     }
   }, [router]);
 
   useEffect(() => {
-    const performCheck = async () => {
-      await checkApiStatus(); // Vérifie l'API à chaque changement de route
-    };
-
-    performCheck();
-  }, [pathname, checkApiStatus]); // Réexécute quand la route change
+    checkApiStatus();
+  }, [pathname, checkApiStatus]);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
-      // Masquer le splash screen une fois que les polices sont prêtes
       await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
-    // Conserver le splash screen pendant le chargement
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="camera" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="preview" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="result" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="error" options={{ headerShown: false, gestureEnabled: false }} />
-      </Stack>
-    </GestureHandlerRootView>
+      <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <Stack>
+          <Stack.Screen name="index" options={commonScreenOptions} />
+          <Stack.Screen name="camera" options={commonScreenOptions} />
+          <Stack.Screen name="onboarding" options={commonScreenOptions} />
+          <Stack.Screen name="preview" options={commonScreenOptions} />
+          <Stack.Screen name="result" options={commonScreenOptions} />
+          <Stack.Screen name="error" options={commonScreenOptions} />
+        </Stack>
+      </GestureHandlerRootView>
   );
 }

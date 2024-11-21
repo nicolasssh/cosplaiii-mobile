@@ -103,7 +103,7 @@ export default function Camera() {
                 quality: 1,
             });
 
-            router.push(`/preview?photoUri=${encodeURIComponent(photo.uri)}`);
+            router.push(`/preview?photoUri=${encodeURIComponent(photo?.uri as string)}`);
         } catch (error) {
             console.error("Erreur lors de la capture :", error);
             Alert.alert("Erreur", "Impossible de capturer la photo.");
