@@ -13,7 +13,7 @@ import Animated, {
   interpolate
 } from "react-native-reanimated";
 
-const API_URL = "http://192.168.1.50:8000/recognize";
+const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/recognize`;
 const DRAG_THRESHOLD = 300;
 const CHEVRON_ANIMATION_DELAY = 800;
 const CHEVRON_HIDE_DELAY = 3800;
