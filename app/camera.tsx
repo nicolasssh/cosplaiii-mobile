@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from "react";
-import { Text, View, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { Text, View, StyleSheet, TouchableOpacity, Alert, Animated } from "react-native";
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,7 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import * as SplashScreen from "expo-splash-screen";
 import { Ionicons } from "@expo/vector-icons";
-import { PinchGestureHandler, GestureHandlerRootView } from "react-native-gesture-handler";
+import { PanGestureHandler, GestureHandlerRootView } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
 
 SplashScreen.preventAutoHideAsync();
@@ -21,6 +21,7 @@ export default function Camera() {
     const insets = useSafeAreaInsets();
     const cameraRef = useRef<CameraView>(null);
     const [lastTap, setLastTap] = useState<number | null>(null);
+    const [opacityAnim] = useState(new Animated.Value(0)); // Animation de l'opacité
 
     const [fontsLoaded] = useFonts({
         Shrikhand: Shrikhand_400Regular,
@@ -31,6 +32,31 @@ export default function Camera() {
             await SplashScreen.hideAsync();
         }
     }, [fontsLoaded]);
+
+    useEffect(() => {
+        // Ajoute un délai de 0.8s avant l'apparition
+        const delayTimeout = setTimeout(() => {
+            // Animation d'apparition
+            Animated.timing(opacityAnim, {
+                toValue: 1,
+                duration: 200, // Durée de 0.2s
+                useNativeDriver: true,
+            }).start();
+
+            // Cache le texte après 3 secondes
+            const hideTextTimeout = setTimeout(() => {
+                Animated.timing(opacityAnim, {
+                    toValue: 0,
+                    duration: 200, // Animation de disparition
+                    useNativeDriver: true,
+                }).start();
+            }, 3000);
+
+            return () => clearTimeout(hideTextTimeout);
+        }, 800); // Délai avant l'apparition
+
+        return () => clearTimeout(delayTimeout);
+    }, [opacityAnim]);
 
     if (!permission || !permission.granted) {
         const getPermission = async () => {
@@ -48,7 +74,7 @@ export default function Camera() {
     const handleDoubleTap = () => {
         const now = Date.now();
         if (lastTap && now - lastTap < 300) {
-            setType(prevType => prevType === "back" ? "front" : "back");
+            setType(prevType => (prevType === "back" ? "front" : "back"));
         }
         setLastTap(now);
     };
@@ -57,6 +83,13 @@ export default function Camera() {
         const scale = nativeEvent.scale;
         const newZoom = Math.min(Math.max(zoom + (scale - 1) / 200, 0), 1);
         setZoom(newZoom);
+    };
+
+    const handleDrag = ({ nativeEvent }: any) => {
+        if (nativeEvent.translationY < -100) {
+            // Si l'utilisateur scrolle vers le haut
+            chooseFromGallery();
+        }
     };
 
     const takePicture = async () => {
@@ -91,9 +124,9 @@ export default function Camera() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <View style={[styles.container, { paddingTop: insets.top }]}>
-                <Text style={styles.header}>cosplaiiii.</Text>
-                <PinchGestureHandler onGestureEvent={handlePinchGesture}>
+            <PanGestureHandler onGestureEvent={handleDrag}>
+                <View style={[styles.container, { paddingTop: insets.top }]}>
+                    <Text style={styles.header}>cosplaiiii.</Text>
                     <View style={{ flex: 1 }}>
                         <CameraView
                             ref={cameraRef}
@@ -107,26 +140,32 @@ export default function Camera() {
                             <StatusBar style="light" />
                         </CameraView>
                     </View>
-                </PinchGestureHandler>
-                <Ionicons
-                    name={flashMode === "off" ? "flash-off-outline" : "flash-outline"}
-                    size={30}
-                    color="#fff"
-                    style={styles.flashIcon}
-                    onPress={() => setFlashMode(prev => prev === "off" ? "on" : "off")}
-                />
-                <Ionicons
-                    name="camera-reverse-outline"
-                    size={30}
-                    color="#fff"
-                    style={styles.switchIcon}
-                    onPress={() => setType(prevType => prevType === "back" ? "front" : "back")}
-                />
-                <TouchableOpacity style={styles.galleryIcon} onPress={chooseFromGallery}>
-                    <Ionicons name="image-outline" size={30} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.circle} onPress={takePicture} />
-            </View>
+                    <Ionicons
+                        name={flashMode === "off" ? "flash-off-outline" : "flash-outline"}
+                        size={30}
+                        color="#fff"
+                        style={styles.flashIcon}
+                        onPress={() => setFlashMode(prev => (prev === "off" ? "on" : "off"))}
+                    />
+                    <Ionicons
+                        name="camera-reverse-outline"
+                        size={30}
+                        color="#fff"
+                        style={styles.switchIcon}
+                        onPress={() => setType(prevType => (prevType === "back" ? "front" : "back"))}
+                    />
+                    <TouchableOpacity style={styles.galleryIcon} onPress={chooseFromGallery}>
+                        <Ionicons name="image-outline" size={30} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.circle} onPress={takePicture} />
+
+                    {/* Texte Drag Up avec animation */}
+                    <Animated.View style={[styles.dragTextContainer, { opacity: opacityAnim }]}>
+                        <Ionicons name="chevron-up-outline" size={30} color="#fff" />
+                        <Text style={styles.dragText}>Drag up to show gallery</Text>
+                    </Animated.View>
+                </View>
+            </PanGestureHandler>
         </GestureHandlerRootView>
     );
 }
@@ -181,5 +220,16 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 5,
         elevation: 5,
+    },
+    dragTextContainer: {
+        position: "absolute",
+        bottom: 130,
+        alignSelf: "center",
+        alignItems: "center",
+    },
+    dragText: {
+        color: "#fff",
+        fontSize: 16,
+        marginTop: 5,
     },
 });
