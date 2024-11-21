@@ -5,8 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import axios from "axios";
 
-const API_URL = "http://192.168.1.158:8000/docs";
-
 const commonScreenOptions = {
   headerShown: false,
   gestureEnabled: false,
