@@ -94,7 +94,7 @@ export default function Preview() {
         type: "image/jpeg",
       });
 
-      const response = await fetch("http://192.168.1.158:8000/recognize", {
+      const response = await fetch("http://192.168.1.50:8000/recognize", {
         method: "POST",
         body: formData,
         headers: {

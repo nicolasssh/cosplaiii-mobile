@@ -46,7 +46,7 @@ export default function Result() {
       });
 
       const response = await fetch(
-        `http://192.168.1.158:8000/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
+        `http://192.168.1.50:8000/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
         {
           method: "POST",
           body: formData,
