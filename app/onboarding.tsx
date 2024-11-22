@@ -4,8 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getLocales } from 'expo-localization';
-import { I18n } from 'i18n-js';
+import { t } from "./translation/i18n";
 
 interface Slide {
   title: string;
@@ -13,65 +12,21 @@ interface Slide {
   text: string;
 }
 
-const translations = {
-  en: { 
-      "Take a picture" : "Take a picture",
-      "Take or select a picture of your favorite cosplay" : "Take or select a picture of your favorite cosplay",
-      "Next" : "Next",
-      "Confirm" : "Confirm"
-   },
-  fr: { 
-      "Take a picture" : "Prendre une photo",
-      "Take or select a picture of your favorite cosplay" : "Prenez ou sélectionnez une photo de votre cosplay préféré",
-      "Next" : "Suivant",
-      "Confirm" : "Confirmer"
-   },
-  it: { 
-      "Take a picture" : "Scatta una foto",
-      "Take or select a picture of your favorite cosplay" : "Scatta o seleziona una foto del tuo cosplay preferito",
-      "Next" : "Avanti",
-      "Confirm" : "Confermare"
-   },
-  es: { 
-      "Take a picture" : "Tomar una foto",
-      "Take or select a picture of your favorite cosplay" : "Toma o selecciona una foto de tu cosplay favorito",
-      "Next" : "Siguiente",
-      "Confirm" : "Confirmar"
-   },
-  pt: { 
-      "Take a picture" : "Tirar uma foto",
-      "Take or select a picture of your favorite cosplay" : "Tire ou selecione uma foto do seu cosplay favorito",
-      "Next" : "Próximo",
-      "Confirm" : "Confirmar"
-   },
-  de: { 
-      "Take a picture" : "Ein Bild machen",
-      "Take or select a picture of your favorite cosplay" : "Machen oder wählen Sie ein Bild Ihres Lieblings-Cosplays",
-      "Next" : "Nächster",
-      "Confirm" : "Bestätigen"
-   },
-};
-const i18n = new I18n(translations);
-
-i18n.locale = getLocales()[0].languageCode ?? 'en';
-
-i18n.enableFallback = true;
-
 const SLIDES: Slide[] = [
   {
-    title: i18n.t("Take a picture"),
+    title: t('actions.takePicture'),
     emoji: "📸",
-    text: i18n.t("Take or select a picture of your favorite cosplay"),
+    text: t('messages.takePictureInfo'),
   },
   {
-    title: i18n.t("Ask for infos"),
+    title: t('actions.askForInfos'),
     emoji: "🤔",
-    text: i18n.t("Ask for information about the cosplay"),
+    text: t('messages.askForInformation'),
   },
   {
-    title: i18n.t("Get a response"),
+    title: t('actions.getResponse'),
     emoji: "🎉",
-    text: i18n.t("Get the character of the cosplay"),
+    text: t('messages.getResponseInfo'),
   },
 ];
 
@@ -112,7 +67,7 @@ export default function Onboarding() {
   const renderButton = () => (
       <TouchableOpacity style={styles.button} onPress={handlePermissionsAndNext}>
         <Text style={styles.buttonText}>
-          {currentIndex < SLIDES.length - 1 ? i18n.t("Next") : i18n.t("Confirm")}
+          {currentIndex < SLIDES.length - 1 ? t("common.next") : t("common.confirm")}
         </Text>
         {currentIndex < SLIDES.length - 1 && (
             <Ionicons name="arrow-forward-outline" size={20} color="#fff" />

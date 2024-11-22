@@ -4,46 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import { Ionicons } from "@expo/vector-icons";
-import { getLocales } from 'expo-localization';
-import { I18n } from 'i18n-js';
+import { t} from "./translation/i18n";
 
 interface ResultResponse {
   character: string;
   confidence: number;
   image_base64: string;
 }
-
-const translations = {
-  en: { 
-      "sure at" : "sure at",
-      "Is this response correct?" : "Is this response correct?",
-   },
-  fr: { 
-      "sure at" : "sûr à",
-      "Is this response correct?" : "Cette réponse est-elle correcte ?",
-   },
-  it: { 
-      "sure at" : "sicuro al",
-      "Is this response correct?" : "Questa risposta è corretta?",
-   },
-  es: { 
-      "sure at" : "seguro en",
-      "Is this response correct?" : "¿Es correcta esta respuesta?",
-   },
-  pt: { 
-      "sure at" : "certeza em",
-      "Is this response correct?" : "Esta resposta está correta?",
-   },
-  de: { 
-      "sure at" : "sicher bei",
-      "Is this response correct?" : "Ist diese Antwort korrekt?",
-   },
-};
-const i18n = new I18n(translations);
-
-i18n.locale = getLocales()[0].languageCode ?? 'en';
-
-i18n.enableFallback = true;
 
 export default function Result() {
   const insets = useSafeAreaInsets();
@@ -123,7 +90,7 @@ export default function Result() {
           )}
           <Text style={styles.characterText}>{data.character}</Text>
           <Text style={styles.confidenceText}>
-            {`${i18n.t("sure at")} ${(parseFloat(data.confidence as unknown as string) * 100).toFixed(2)}%`}
+            {`${t("messages.sureAt")} ${(parseFloat(data.confidence as unknown as string) * 100).toFixed(2)}%`}
           </Text>
         </>
     );
@@ -138,7 +105,7 @@ export default function Result() {
                   <ActivityIndicator size="large" color="#000" />
               ) : (
                   <>
-                    <Text style={styles.confirmText}>{i18n.t("Is this response correct?")}</Text>
+                    <Text style={styles.confirmText}>{t("messages.isResponseCorrect")}</Text>
                     <View style={styles.confirmButtons}>
                       <TouchableOpacity
                           style={styles.confirmButton}

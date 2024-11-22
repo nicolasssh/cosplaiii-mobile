@@ -1,0 +1,158 @@
+{
+  "en": {
+    "common": {
+      "next": "Next",
+      "confirm": "Confirm",
+      "retry": "Retry"
+    },
+    "actions": {
+      "dragUp": "Drag up to show gallery",
+      "dragDown": "Drag down to cancel",
+      "takePicture": "Take a picture",
+      "askForInfos": "Ask for informations",
+      "getResponse": "Get response"
+    },
+    "messages": {
+      "sureAt": "sure at",
+      "isResponseCorrect": "Is this response correct?",
+      "findInformation": "Find informations",
+      "takePictureInfo": "Take or select a picture of your favorite cosplay",
+      "askForInformation": "Ask for informations about the cosplay",
+      "getResponseInfo": "Get the character of the cosplay"
+    },
+    "errors": {
+      "connectionTitle": "Connection Error",
+      "connectionMessage": "Unable to connect to the server. Please check your connection or try again."
+    }
+  },
+  "fr": {
+    "common": {
+      "next": "Suivant",
+      "confirm": "Confirmer",
+      "retry": "Réessayer"
+    },
+    "actions": {
+      "dragUp": "Faites glisser pour afficher la galerie",
+      "dragDown": "Faites glisser pour annuler",
+      "takePicture": "Prendre une photo",
+      "askForInfos": "Demander des informations",
+      "getResponse": "Obtenir une réponse"
+    },
+    "messages": {
+      "sureAt": "sûr à",
+      "isResponseCorrect": "Cette réponse est-elle correcte ?",
+      "findInformation": "Trouver des informations",
+      "takePictureInfo": "Prenez ou sélectionnez une photo de votre cosplay préféré",
+      "askForInformation": "Demander des informations sur le cosplay",
+      "getResponseInfo": "Obtenez le personnage du cosplay"
+    },
+    "errors": {
+      "connectionTitle": "Erreur de connexion",
+      "connectionMessage": "Impossible de se connecter au serveur. Veuillez vérifier votre connexion ou réessayer."
+    }
+  },
+  "it": {
+    "common": {
+      "next": "Avanti",
+      "confirm": "Confermare",
+      "retry": "Riprova"
+    },
+    "actions": {
+      "dragUp": "Trascina per mostrare la galleria",
+      "dragDown": "Trascina per annullare",
+      "takePicture": "Scatta una foto",
+      "askForInfos": "Richiedi informazioni",
+      "getResponse": "Ottieni una risposta"
+    },
+    "messages": {
+      "sureAt": "sicuro al",
+      "isResponseCorrect": "Questa risposta è corretta?",
+      "findInformation": "Trova informazioni",
+      "takePictureInfo": "Scatta o seleziona una foto del tuo cosplay preferito",
+      "askForInformation": "Richiedi informazioni sul cosplay",
+      "getResponseInfo": "Ottieni il personaggio del cosplay"
+    },
+    "errors": {
+      "connectionTitle": "Errore di connessione",
+      "connectionMessage": "Impossibile connettersi al server. Controlla la tua connessione o riprova."
+    }
+  },
+  "es": {
+    "common": {
+      "next": "Siguiente",
+      "confirm": "Confirmar",
+      "retry": "Reintentar"
+    },
+    "actions": {
+      "dragUp": "Desliza para mostrar la galería",
+      "dragDown": "Desliza para cancelar",
+      "takePicture": "Tomar una foto",
+      "askForInfos": "Solicitar información",
+      "getResponse": "Obtener una respuesta"
+    },
+    "messages": {
+      "sureAt": "seguro en",
+      "isResponseCorrect": "¿Es correcta esta respuesta?",
+      "findInformation": "Encontrar información",
+      "takePictureInfo": "Toma o selecciona una foto de tu cosplay favorito",
+      "askForInformation": "Solicitar información sobre el cosplay",
+      "getResponseInfo": "Obtén el personaje del cosplay"
+    },
+    "errors": {
+      "connectionTitle": "Error de conexión",
+      "connectionMessage": "No se puede conectar al servidor. Verifique su conexión o inténtelo de nuevo."
+    }
+  },
+  "pt": {
+    "common": {
+      "next": "Próximo",
+      "confirm": "Confirmar",
+      "retry": "Tentar novamente"
+    },
+    "actions": {
+      "dragUp": "Arraste para mostrar a galeria",
+      "dragDown": "Arraste para cancelar",
+      "takePicture": "Tirar uma foto",
+      "askForInfos": "Solicitar informações",
+      "getResponse": "Obter uma resposta"
+    },
+    "messages": {
+      "sureAt": "certeza em",
+      "isResponseCorrect": "Esta resposta está correta?",
+      "findInformation": "Encontrar informações",
+      "takePictureInfo": "Tire ou selecione uma foto do seu cosplay favorito",
+      "askForInformation": "Solicitar informações sobre o cosplay",
+      "getResponseInfo": "Obtenha o personagem do cosplay"
+    },
+    "errors": {
+      "connectionTitle": "Erro de conexão",
+      "connectionMessage": "Não é possível conectar ao servidor. Verifique sua conexão ou tente novamente."
+    }
+  },
+  "de": {
+    "common": {
+      "next": "Nächster",
+      "confirm": "Bestätigen",
+      "retry": "Wiederholen"
+    },
+    "actions": {
+      "dragUp": "Zum Anzeigen der Galerie ziehen",
+      "dragDown": "Zum Abbrechen ziehen",
+      "takePicture": "Ein Bild machen",
+      "askForInfos": "Informationen anfordern",
+      "getResponse": "Antwort erhalten"
+    },
+    "messages": {
+      "sureAt": "sicher bei",
+      "isResponseCorrect": "Ist diese Antwort korrekt?",
+      "findInformation": "Informationen finden",
+      "takePictureInfo": "Machen oder wählen Sie ein Bild Ihres Lieblings-Cosplays",
+      "askForInformation": "Fragen Sie nach Informationen zum Cosplay",
+      "getResponseInfo": "Erhalten Sie den Charakter des Cosplays"
+    },
+    "errors": {
+      "connectionTitle": "Verbindungsfehler",
+      "connectionMessage": "Verbindung zum Server nicht möglich. Bitte überprüfen Sie Ihre Verbindung oder versuchen Sie es erneut."
+    }
+  }
+}
