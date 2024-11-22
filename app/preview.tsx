@@ -171,7 +171,7 @@ export default function Preview() {
                             ) : (
                                 <>
                                     <Text
-                                        style={styles.confirmText}>{t("message.findInformation")}</Text>
+                                        style={styles.confirmText}>{t("messages.findInformation")}</Text>
                                     <Ionicons name="sparkles-outline" size={20} color="#000"/>
                                 </>
                             )}
