@@ -4,6 +4,7 @@ import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import axios from "axios";
+import { MenuProvider } from "./MenuProvider";
 
 const commonScreenOptions = {
   headerShown: false,
@@ -48,7 +49,8 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-      <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <MenuProvider>
+        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <Stack>
           <Stack.Screen name="index" options={commonScreenOptions} />
           <Stack.Screen name="camera" options={commonScreenOptions} />
@@ -56,7 +58,10 @@ export default function RootLayout() {
           <Stack.Screen name="preview" options={commonScreenOptions} />
           <Stack.Screen name="result" options={commonScreenOptions} />
           <Stack.Screen name="error" options={commonScreenOptions} />
+          <Stack.Screen name="cosplaydex" options={commonScreenOptions} />
+          <Stack.Screen name="settings" options={commonScreenOptions} />
         </Stack>
       </GestureHandlerRootView>
+      </MenuProvider>
   );
 }

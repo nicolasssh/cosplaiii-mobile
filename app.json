@@ -6,7 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "Dark",
+    "backgroundColor": "#000000",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash.png",
@@ -15,7 +16,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nicolasssh.cosplaiii-mobile"
+      "bundleIdentifier": "com.nicolasssh.cosplaiii-mobile",
+      "infoPlist": {
+        "UIUserInterfaceStyle": "Dark"
+      }
     },
     "android": {
       "adaptiveIcon": {

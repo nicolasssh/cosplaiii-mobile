@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Text, View, StyleSheet, TouchableOpacity, Alert, Animated } from "react-native";
+// Camera.tsx
+import React, { useState, useCallback, useRef } from "react";
+import { Text, View, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions } from "react-native";
 import { CameraView, CameraType, useCameraPermissions, FlashMode } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,25 +10,39 @@ import * as SplashScreen from "expo-splash-screen";
 import { Ionicons } from "@expo/vector-icons";
 import {
     GestureHandlerRootView,
-    PinchGestureHandler
+    PinchGestureHandler,
+    PinchGestureHandlerGestureEvent
 } from "react-native-gesture-handler";
 import { useRouter } from "expo-router";
+import SlideMenu from './components/SlideMenu';
+import { useMenu } from './MenuProvider';
 
 SplashScreen.preventAutoHideAsync();
 
+interface PhotoAsset {
+  uri: string;
+  width: number;
+  height: number;
+}
+
 export default function Camera() {
+    const { isMenuOpen, toggleMenu, slideAnim } = useMenu();
     const router = useRouter();
     const [permission, requestPermission] = useCameraPermissions();
     const [type, setType] = useState<CameraType>("back");
     const [flashMode, setFlashMode] = useState<FlashMode>("off");
-    const [zoom, setZoom] = useState(0);
+    const [zoom, setZoom] = useState<number>(0);
     const insets = useSafeAreaInsets();
     const cameraRef = useRef<CameraView>(null);
     const [lastTap, setLastTap] = useState<number | null>(null);
-    const [opacityAnim] = useState(new Animated.Value(0)); // Animation de l'opacité
 
     const [fontsLoaded] = useFonts({
         Shrikhand: Shrikhand_400Regular,
+    });
+
+    const mainViewTranslateX = slideAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, Dimensions.get('window').width * 0.7],
     });
 
     useCallback(async () => {
@@ -36,7 +51,7 @@ export default function Camera() {
         }
     }, [fontsLoaded]);
 
-    if (!permission || !permission.granted) {
+    if (!permission?.granted) {
         const getPermission = async () => {
             const cameraPermission = await requestPermission();
             if (!cameraPermission.granted) {
@@ -57,17 +72,10 @@ export default function Camera() {
         setLastTap(now);
     };
 
-    const handlePinchGesture = ({ nativeEvent }: any) => {
+    const handlePinchGesture = ({ nativeEvent }: PinchGestureHandlerGestureEvent) => {
         const scale = nativeEvent.scale;
         const newZoom = Math.min(Math.max(zoom + (scale - 1) / 200, 0), 1);
         setZoom(newZoom);
-    };
-
-    const handleDrag = ({ nativeEvent }: any) => {
-        if (nativeEvent.translationY < -100) {
-            // Si l'utilisateur scrolle vers le haut
-            chooseFromGallery();
-        }
     };
 
     const takePicture = async () => {
@@ -103,21 +111,37 @@ export default function Camera() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <PinchGestureHandler onGestureEvent={handlePinchGesture}>
-                <View style={[styles.container, { paddingTop: insets.top }]}>
-                    <Text style={styles.header}>cosplaiiii.</Text>
+                <Animated.View 
+                    style={[
+                        styles.container, 
+                        { 
+                            paddingTop: insets.top,
+                            transform: [{ translateX: mainViewTranslateX }]
+                        }
+                    ]}
+                >
+                    <View style={styles.headerContainer}>
+                        <TouchableOpacity onPress={toggleMenu}>
+                            <Ionicons name="menu-outline" size={30} color="#fff" />
+                        </TouchableOpacity>
+                        <Text style={styles.header}>cosplaiiii.</Text>
+                        <View style={{ width: 30 }} />
+                    </View>
+
                     <View style={{ flex: 1 }}>
                         <CameraView
                             ref={cameraRef}
                             style={styles.camera}
-                            facing={type}
-                            flash={flashMode}
+                            type={type}
+                            flashMode={flashMode}
                             zoom={zoom}
                             onTouchEnd={handleDoubleTap}
-                            autofocus="on"
+                            enableAutoFocus={true}
                         >
                             <StatusBar style="light" />
                         </CameraView>
                     </View>
+
                     <Ionicons
                         name={flashMode === "off" ? "flash-off-outline" : "flash-outline"}
                         size={30}
@@ -136,8 +160,14 @@ export default function Camera() {
                         <Ionicons name="image-outline" size={30} color="#fff" />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.circle} onPress={takePicture} />
-                </View>
+                </Animated.View>
             </PinchGestureHandler>
+            
+            <SlideMenu 
+                isOpen={isMenuOpen}
+                onClose={toggleMenu}
+                slideAnim={slideAnim}
+            />
         </GestureHandlerRootView>
     );
 }
@@ -147,13 +177,19 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#000",
     },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        marginBottom: 10,
+    },
     header: {
         fontFamily: "Shrikhand",
         fontSize: 25,
         fontWeight: "bold",
         textAlign: "center",
         color: "#fff",
-        marginBottom: 10,
     },
     camera: {
         flex: 1,
