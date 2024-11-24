@@ -30,6 +30,7 @@ const SlideMenu: React.FC<SlideMenuProps> = ({ isOpen, onClose, slideAnim }) => 
     const menuItems: MenuItem[] = [
         { title: 'Accueil', icon: 'home-outline', route: '/' },
         { title: 'Cosplaydex', icon: 'apps-outline', route: '/cosplaydex' },
+        { title: 'Communauté', icon: 'earth-outline', route: '/community' },
         { title: 'Paramètres', icon: 'settings-outline', route: '/settings' },
     ];
 

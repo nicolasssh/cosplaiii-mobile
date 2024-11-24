@@ -65,6 +65,7 @@ export default function RootLayout() {
             <Stack.Screen name="login" options={commonScreenOptions} />
             <Stack.Screen name="signup" options={commonScreenOptions} />
             <Stack.Screen name="profile" options={commonScreenOptions} />
+            <Stack.Screen name="community" options={commonScreenOptions} />
           </Stack>
         </GestureHandlerRootView>
       </MenuProvider>
