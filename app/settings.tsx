@@ -7,7 +7,8 @@ import {
     Switch, 
     Alert, 
     Animated, 
-    Dimensions 
+    Dimensions, 
+    TextInput 
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,9 +18,12 @@ import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import { Camera } from 'expo-camera';
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
+import { auth, firestore } from "./firebase"; // Importez Firebase auth et Firestore
+import { EmailAuthProvider, reauthenticateWithCredential, deleteUser } from "firebase/auth";
+import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const MENU_WIDTH = SCREEN_WIDTH * 0.7; // 70% de la largeur de l'écran
+const MENU_WIDTH = SCREEN_WIDTH * 0.7;
 
 export default function SettingsPage() {
     const insets = useSafeAreaInsets();
@@ -28,12 +32,21 @@ export default function SettingsPage() {
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [cameraEnabled, setCameraEnabled] = useState(false);
     const [geolocationEnabled, setGeolocationEnabled] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [password, setPassword] = useState(""); // État pour le mot de passe
     const [fontsLoaded] = useFonts({
         Shrikhand: Shrikhand_400Regular,
     });
 
     useEffect(() => {
         checkPermissions();
+
+        // Vérifiez si l'utilisateur est connecté
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            setIsLoggedIn(!!user);
+        });
+
+        return unsubscribe;
     }, []);
 
     const checkPermissions = async () => {
@@ -77,52 +90,88 @@ export default function SettingsPage() {
         }
     };
 
-    const handleLogout = () => {
-        Alert.alert("Déconnexion", "Vous avez été déconnecté.");
-    };
+    const handleDeleteAccount = async () => {
+        const user = auth.currentUser;
 
-    const handleDeleteData = () => {
-        Alert.alert(
-            "Supprimer les données",
-            "Êtes-vous sûr de vouloir supprimer toutes vos données ?",
-            [
-                { text: "Annuler", style: "cancel" },
-                { text: "Supprimer", onPress: () => Alert.alert("Données supprimées.") },
-            ]
-        );
-    };
+        if (!user) {
+            Alert.alert("Erreur", "Aucun utilisateur n'est connecté.");
+            return;
+        }
 
-    const handleDeleteAccount = () => {
+        if (!password) {
+            Alert.alert("Erreur", "Veuillez entrer votre mot de passe pour continuer.");
+            return;
+        }
+
         Alert.alert(
             "Supprimer le compte",
             "Cette action est irréversible. Êtes-vous sûr de vouloir supprimer définitivement votre compte ?",
             [
                 { text: "Annuler", style: "cancel" },
-                { text: "Supprimer", onPress: () => Alert.alert("Compte supprimé.") },
+                {
+                    text: "Supprimer",
+                    onPress: async () => {
+                        try {
+                            // Réauthentification
+                            const credential = EmailAuthProvider.credential(user.email!, password);
+                            await reauthenticateWithCredential(user, credential);
+
+                            // Supprimer les données utilisateur dans Firestore
+                            const userId = user.uid;
+                            const userCollections = ["user_cosplaydex", "other_user_collection"]; // Ajoutez ici les collections liées à l'utilisateur
+
+                            for (const collectionName of userCollections) {
+                                const colRef = collection(firestore, collectionName);
+                                const q = query(colRef, where("user_id", "==", userId));
+                                const querySnapshot = await getDocs(q);
+
+                                for (const docSnap of querySnapshot.docs) {
+                                    await deleteDoc(docSnap.ref);
+                                }
+                            }
+
+                            // Supprimer le document principal de l'utilisateur (exemple : collection "users")
+                            const userDocRef = doc(firestore, "users", userId);
+                            await deleteDoc(userDocRef);
+
+                            // Supprimer l'utilisateur dans Firebase Auth
+                            await deleteUser(user);
+
+                            // Déconnecter l'utilisateur
+                            auth.signOut();
+
+                            Alert.alert("Succès", "Votre compte a été supprimé avec succès.");
+                        } catch (error: any) {
+                            console.error("Erreur lors de la suppression du compte:", error);
+                            if (error.code === "auth/wrong-password") {
+                                Alert.alert("Erreur", "Mot de passe incorrect. Veuillez réessayer.");
+                            } else {
+                                Alert.alert("Erreur", "Une erreur est survenue lors de la suppression du compte.");
+                            }
+                        }
+                    },
+                },
             ]
         );
     };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* Menu Slide */}
             <SlideMenu 
                 isOpen={isMenuOpen}
                 onClose={toggleMenu}
                 slideAnim={slideAnim}
             />
 
-            {/* Contenu principal avec animation */}
             <Animated.View 
                 style={[
                     styles.mainContent, 
                     { transform: [{ translateX: slideAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0, MENU_WIDTH], // Déplacement complet
+                        outputRange: [0, MENU_WIDTH],
                     }) }] }
                 ]}
             >
-                {/* Header */}
                 <View style={styles.headerContainer}>
                     <TouchableOpacity onPress={toggleMenu}>
                         <Ionicons name="menu-outline" size={30} color="#fff" />
@@ -131,7 +180,6 @@ export default function SettingsPage() {
                     <View style={{ width: 30 }} />
                 </View>
 
-                {/* Section des autorisations */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Autorisations</Text>
                     <View style={styles.row}>
@@ -157,19 +205,22 @@ export default function SettingsPage() {
                     </View>
                 </View>
 
-                {/* Section de gestion du compte */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Gestion du compte</Text>
-                    <TouchableOpacity style={styles.button} onPress={handleLogout}>
-                        <Text style={styles.buttonText}>Se déconnecter</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleDeleteData}>
-                        <Text style={styles.buttonText}>Supprimer toutes les données</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleDeleteAccount}>
-                        <Text style={styles.buttonText}>Supprimer le compte</Text>
-                    </TouchableOpacity>
-                </View>
+                {isLoggedIn && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Gestion du compte</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Entrez votre mot de passe"
+                            placeholderTextColor="#aaa"
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                        />
+                        <TouchableOpacity style={[styles.button, styles.dangerButton]} onPress={handleDeleteAccount}>
+                            <Text style={styles.buttonText}>Supprimer le compte</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </Animated.View>
         </View>
     );
@@ -223,7 +274,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#444",
         paddingVertical: 15,
         paddingHorizontal: 20,
-        borderRadius: 50, // Arrondir les boutons
+        borderRadius: 50,
         marginVertical: 10,
     },
     buttonText: {
@@ -233,5 +284,14 @@ const styles = StyleSheet.create({
     },
     dangerButton: {
         backgroundColor: "#d9534f",
+    },
+    input: {
+        backgroundColor: "#333",
+        color: "#fff",
+        borderRadius: 50,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        marginBottom: 20,
+        fontSize: 16,
     },
 });

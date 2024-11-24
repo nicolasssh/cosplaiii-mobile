@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "816591255558",
+    "project_id": "cosplaiiii-c4525",
+    "storage_bucket": "cosplaiiii-c4525.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:816591255558:android:9e6464be17ed359a65ab87",
+        "android_client_info": {
+          "package_name": "com.cosplaiiii.cosplaiiii"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "816591255558-je90qs84ul2fntsf81t2tcmbi9mphc0p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cosplaiiii.cosplaiiii",
+            "certificate_hash": "681cd2430c50c58a84a1381cdef43bac42202cb1"
+          }
+        },
+        {
+          "client_id": "816591255558-0a7ufd6oa8oiok4dc9fkai2hlc78f4iq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9UVj46POhbJgHKDV3-he2XG5EpXG-ER0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "816591255558-0a7ufd6oa8oiok4dc9fkai2hlc78f4iq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "816591255558-1tqdbni06snsf3umrf2jel7plsfsf1vi.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nicolasssh.cosplaiii-mobile"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

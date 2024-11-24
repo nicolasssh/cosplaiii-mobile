@@ -7,7 +7,7 @@ import {
     Dimensions, 
     TouchableOpacity,
     ImageBackground,
-    FlatList
+    FlatList 
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +15,9 @@ import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import * as SplashScreen from "expo-splash-screen";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { BlurView } from 'expo-blur';
+import { auth, firestore } from "./firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import SlideMenu from './components/SlideMenu';
 import { useMenu } from './MenuProvider';
 
@@ -27,8 +30,8 @@ interface Character {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_MARGIN = 10;
-const CARD_WIDTH = (SCREEN_WIDTH - (CARD_MARGIN * 4)) / 2; // 2 colonnes avec marges
-const CARD_HEIGHT = CARD_WIDTH * 16 / 9; // Ratio d'écran de téléphone standard (16:9)
+const CARD_WIDTH = (SCREEN_WIDTH - (CARD_MARGIN * 4)) / 2;
+const CARD_HEIGHT = CARD_WIDTH * 16 / 9;
 
 export default function Cosplaydex() {
     const { isMenuOpen, toggleMenu, slideAnim } = useMenu();
@@ -36,7 +39,10 @@ export default function Cosplaydex() {
     const insets = useSafeAreaInsets();
     const [characters, setCharacters] = useState<Character[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [progress, setProgress] = useState<number>(0); // Progrès affiché (0/total)
+    const [progress, setProgress] = useState<number>(0);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+    const [userCosplaydexNames, setUserCosplaydexNames] = useState<string[]>([]);
+    const [unlockedCount, setUnlockedCount] = useState<number>(0); // Nouvel état pour les cartes uniques débloquées
 
     const [fontsLoaded] = useFonts({
         Shrikhand: Shrikhand_400Regular,
@@ -44,11 +50,32 @@ export default function Cosplaydex() {
 
     useEffect(() => {
         fetchCharacters();
+
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            setIsLoggedIn(!!user);
+            if (user) {
+                await fetchUserCosplaydex(user.uid);
+            }
+        });
+
+        return unsubscribe;
     }, []);
+
+    useEffect(() => {
+        // Mettre à jour le nombre de cartes débloquées uniques
+        const uniqueUnlocked = new Set(userCosplaydexNames).size;
+        setUnlockedCount(uniqueUnlocked);
+
+        // Mettre à jour la progression
+        const totalCharacters = characters.length;
+        if (totalCharacters > 0) {
+            setProgress((uniqueUnlocked / totalCharacters) * 100);
+        }
+    }, [userCosplaydexNames, characters]);
 
     const mainViewTranslateX = slideAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [0, Dimensions.get('window').width * 0.7],
+        outputRange: [0, SCREEN_WIDTH * 0.7],
     });
 
     const fetchCharacters = async () => {
@@ -59,13 +86,36 @@ export default function Cosplaydex() {
                 }
             });
             const data = await response.json();
-            
             setCharacters(data);
-            setProgress(0); // Initialiser à 0
         } catch (error) {
             console.error('Error fetching characters:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchUserCosplaydex = async (userId: string) => {
+        try {
+            const userCosplaydexRef = collection(firestore, "user_cosplaydex");
+            const q = query(userCosplaydexRef, where("user_id", "==", userId));
+            const querySnapshot = await getDocs(q);
+
+            const cosplaydexNames: string[] = [];
+            for (const docSnap of querySnapshot.docs) {
+                const data = docSnap.data();
+                const cosplaydexRef = collection(firestore, "cosplaydex");
+                const cosplaydexQuery = query(cosplaydexRef, where("__name__", "==", data.cosplaydex_id));
+                const cosplaydexSnap = await getDocs(cosplaydexQuery);
+
+                cosplaydexSnap.forEach((snap) => {
+                    const cosplayData = snap.data();
+                    cosplaydexNames.push(cosplayData.name.toLowerCase());
+                });
+            }
+
+            setUserCosplaydexNames(cosplaydexNames);
+        } catch (error) {
+            console.error("Error fetching user cosplaydex:", error);
         }
     };
 
@@ -77,19 +127,39 @@ export default function Cosplaydex() {
 
     if (!fontsLoaded) return null;
 
-    const renderCharacterCard = ({ item }: { item: Character }) => (
-        <View style={styles.cardContainer}>
-            <ImageBackground
-                source={{ uri: `data:image/jpeg;base64,${item.image_base64}` }}
-                style={styles.cardBackground}
-                imageStyle={styles.cardImage}
-            >
-                <View style={styles.cardOverlay}>
-                    <Text style={styles.characterName}>{item.name}</Text>
-                </View>
-            </ImageBackground>
-        </View>
-    );
+    const renderCharacterCard = ({ item }: { item: Character }) => {
+        // Calcul des occurrences pour ce personnage
+        const occurrences = userCosplaydexNames.filter(
+            (name) => name === item.name.toLowerCase()
+        ).length;
+    
+        // Déterminer si ce personnage est débloqué
+        const isUnlocked = occurrences > 0;
+    
+        // Ajuster l'opacité de l'image
+        const imageOpacity = isUnlocked ? 1 : 0.2;
+    
+        return (
+            <View style={styles.cardContainer}>
+                <ImageBackground
+                    source={{ uri: `data:image/jpeg;base64,${item.image_base64}` }}
+                    style={[styles.cardBackground, { opacity: imageOpacity }]}
+                    imageStyle={styles.cardImage}
+                >
+                    {/* Afficher un badge avec les occurrences si débloqué */}
+                    {isUnlocked && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{occurrences}</Text>
+                        </View>
+                    )}
+                    <View style={styles.cardOverlay}>
+                        <Text style={styles.characterName}>{item.name}</Text>
+                    </View>
+                </ImageBackground>
+            </View>
+        );
+    };
+    
 
     return (
         <View style={{ flex: 1 }}>
@@ -106,16 +176,15 @@ export default function Cosplaydex() {
                     <TouchableOpacity onPress={toggleMenu}>
                         <Ionicons name="menu-outline" size={30} color="#fff" />
                     </TouchableOpacity>
-                    <Text style={styles.header}>cosplaydex</Text>
+                    <Text style={styles.header}>Cosplaydex</Text>
                     <View style={{ width: 30 }} />
                 </View>
 
-                {/* Barre de progression sous le titre */}
                 <View style={styles.progressContainer}>
                     <View style={styles.progressBar}>
-                        <View style={[styles.progress, { width: `${(progress / characters.length) * 100}%` }]} />
+                        <View style={[styles.progress, { width: `${progress}%` }]} />
                     </View>
-                    <Text style={styles.progressText}>{progress}/{characters.length}</Text>
+                    <Text style={styles.progressText}>{unlockedCount}/{characters.length} débloqués</Text>
                 </View>
 
                 <FlatList
@@ -136,10 +205,25 @@ export default function Cosplaydex() {
                 <StatusBar style="light" />
             </Animated.View>
             
+            {!isLoggedIn && (
+                <BlurView intensity={80} style={styles.blurView}>
+                    <Text style={styles.blurText}>
+                        Vous devez être connecté pour accéder au Cosplaydex.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.loginButton}
+                        onPress={() => router.push('/login')}
+                    >
+                        <Text style={styles.loginButtonText}>Se connecter</Text>
+                    </TouchableOpacity>
+                </BlurView>
+            )}
+
             <SlideMenu 
                 isOpen={isMenuOpen}
                 onClose={toggleMenu}
                 slideAnim={slideAnim}
+                isLoggedIn={isLoggedIn}
             />
         </View>
     );
@@ -203,11 +287,9 @@ const styles = StyleSheet.create({
     cardImage: {
         width: '100%',
         height: '100%',
-        filter: 'grayscale(100%)', // Note: This only works on web
     },
     cardOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
         justifyContent: 'flex-end',
         padding: 10,
     },
@@ -215,13 +297,49 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
-        fontFamily : 'Shrikhand',
+        fontFamily: 'Shrikhand',
         textTransform: 'capitalize',
+    },
+    badge: {
+        position: 'absolute',
+        top: 10,
+        left: 10,
+        backgroundColor: 'white',
+        borderRadius: 15,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    badgeText: {
+        color: '#000',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     emptyText: {
         color: '#fff',
         textAlign: 'center',
         marginTop: 20,
+        fontSize: 16,
+    },
+    blurView: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    blurText: {
+        color: '#fff',
+        fontSize: 18,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    loginButton: {
+        backgroundColor: '#444',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 50,
+    },
+    loginButtonText: {
+        color: '#fff',
         fontSize: 16,
     },
 });

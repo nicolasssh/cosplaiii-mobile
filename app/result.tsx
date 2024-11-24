@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFonts, Shrikhand_400Regular } from "@expo-google-fonts/shrikhand";
 import { Ionicons } from "@expo/vector-icons";
-import { t} from "./translation/i18n";
+import { auth, firestore } from "./firebase"; // Firebase configuration
+import { collection, doc, getDocs, query, where, addDoc } from "firebase/firestore";
+import { t } from "./translation/i18n";
 
 interface ResultResponse {
   character: string;
@@ -36,42 +38,50 @@ export default function Result() {
     setLoading(true);
     try {
       const currentCharacter = newResponse?.character || character;
-      const formData = new FormData();
-      formData.append("file", {
-        uri: photo_take as string,
-        name: "image.jpg",
-        type: "image/jpeg",
-      } as unknown as Blob);
 
-      const API_URL = process.env.EXPO_PUBLIC_API_URL;
+      // Vérification de la connexion utilisateur
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert("Non connecté", "Vous devez être connecté pour valider ce cosplay.");
+        return;
+      }
 
-      const response = await fetch(
-          `${API_URL}/recognize/validate?name=${currentCharacter}&is_true=${isTrue}`,
-          {
-            method: "POST",
-            body: formData,
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-      );
+      const capitalizeFirstLetter = (str: String) => {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+      };    
 
-      if (!response.ok) throw new Error("API Error");
+      // Étape 1 : Vérifier si le personnage existe dans la collection `cosplaydex`
+      const cosplaydexRef = collection(firestore, "cosplaydex");
+      const q = query(cosplaydexRef, where("name", "==", capitalizeFirstLetter(currentCharacter as String)));
+      const querySnapshot = await getDocs(q);
 
-      const result = await response.json();
+      if (!querySnapshot.empty) {
+        // Étape 2 : Ajouter un document à la collection `user_cosplaydex`
+        const cosplaydexId = querySnapshot.docs[0].id;
+        const userCosplaydexRef = collection(firestore, "user_cosplaydex");
+
+        await addDoc(userCosplaydexRef, {
+          user_id: user.uid,
+          cosplaydex_id: cosplaydexId,
+          added_at: new Date().toISOString(),
+        });
+
+        Alert.alert("Succès", "Cosplay ajouté à votre liste !");
+      } else {
+        Alert.alert("Non trouvé", "Le personnage n'existe pas dans la base de données.");
+      }
 
       if (isTrue) {
         setBackgroundColor("green");
         setShowConfirm(false);
-      } else if (result.character) {
-        setNewResponse(result);
       } else {
         setBackgroundColor("red");
         setShowConfirm(false);
       }
     } catch (error) {
       console.error("Validation error:", error);
-      Alert.alert("Error", "An error occurred during validation.");
+      Alert.alert("Erreur", "Une erreur est survenue lors de la validation.");
     } finally {
       setLoading(false);
     }
@@ -80,62 +90,62 @@ export default function Result() {
   const renderCharacterInfo = () => {
     const data = newResponse || { character, confidence, image_base64 };
     return (
-        <>
-          {data.image_base64 && (
-              <Image
-                  source={{ uri: `data:image/png;base64,${data.image_base64}` }}
-                  style={styles.characterImage}
-                  resizeMode="cover"
-              />
-          )}
-          <Text style={styles.characterText}>{data.character}</Text>
-          <Text style={styles.confidenceText}>
-            {`${t("messages.sureAt")} ${(parseFloat(data.confidence as unknown as string) * 100).toFixed(2)}%`}
-          </Text>
-        </>
+      <>
+        {data.image_base64 && (
+          <Image
+            source={{ uri: `data:image/png;base64,${data.image_base64}` }}
+            style={styles.characterImage}
+            resizeMode="cover"
+          />
+        )}
+        <Text style={styles.characterText}>{data.character}</Text>
+        <Text style={styles.confidenceText}>
+          {`${t("messages.sureAt")} ${(parseFloat(data.confidence as unknown as string) * 100).toFixed(2)}%`}
+        </Text>
+      </>
     );
   };
 
   return (
-      <View style={[styles.container, { paddingTop: insets.top, backgroundColor }]}>
-        {renderCharacterInfo()}
-        {showConfirm && (
-            <View style={styles.confirm}>
-              {loading ? (
-                  <ActivityIndicator size="large" color="#000" />
-              ) : (
-                  <>
-                    <Text style={styles.confirmText}>{t("messages.isResponseCorrect")}</Text>
-                    <View style={styles.confirmButtons}>
-                      <TouchableOpacity
-                          style={styles.confirmButton}
-                          onPress={() => handleValidation(true)}
-                      >
-                        <Ionicons name="thumbs-up-outline" size={40} color="#000" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                          style={styles.confirmButton}
-                          onPress={() => handleValidation(false)}
-                      >
-                        <Ionicons name="thumbs-down-outline" size={40} color="#000" />
-                      </TouchableOpacity>
-                    </View>
-                  </>
-              )}
-            </View>
-        )}
-        <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => router.push("/")}
-        >
-          <Ionicons
-              name="add-outline"
-              style={styles.closeIcon}
-              size={40}
-              color="#FFF"
-          />
-        </TouchableOpacity>
-      </View>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor }]}>
+      {renderCharacterInfo()}
+      {showConfirm && (
+        <View style={styles.confirm}>
+          {loading ? (
+            <ActivityIndicator size="large" color="#000" />
+          ) : (
+            <>
+              <Text style={styles.confirmText}>{t("messages.isResponseCorrect")}</Text>
+              <View style={styles.confirmButtons}>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => handleValidation(true)}
+                >
+                  <Ionicons name="thumbs-up-outline" size={40} color="#000" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => handleValidation(false)}
+                >
+                  <Ionicons name="thumbs-down-outline" size={40} color="#000" />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      )}
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => router.push("/")}
+      >
+        <Ionicons
+          name="add-outline"
+          style={styles.closeIcon}
+          size={40}
+          color="#FFF"
+        />
+      </TouchableOpacity>
+    </View>
   );
 }
 

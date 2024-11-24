@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import axios from "axios";
 import { MenuProvider } from "./MenuProvider";
+import { UserProvider } from "./components/UserContext";
 
 const commonScreenOptions = {
   headerShown: false,
@@ -49,19 +50,24 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-      <MenuProvider>
+      <UserProvider>
+        <MenuProvider>
         <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-        <Stack>
-          <Stack.Screen name="index" options={commonScreenOptions} />
-          <Stack.Screen name="camera" options={commonScreenOptions} />
-          <Stack.Screen name="onboarding" options={commonScreenOptions} />
-          <Stack.Screen name="preview" options={commonScreenOptions} />
-          <Stack.Screen name="result" options={commonScreenOptions} />
-          <Stack.Screen name="error" options={commonScreenOptions} />
-          <Stack.Screen name="cosplaydex" options={commonScreenOptions} />
-          <Stack.Screen name="settings" options={commonScreenOptions} />
-        </Stack>
-      </GestureHandlerRootView>
+          <Stack>
+            <Stack.Screen name="index" options={commonScreenOptions} />
+            <Stack.Screen name="camera" options={commonScreenOptions} />
+            <Stack.Screen name="onboarding" options={commonScreenOptions} />
+            <Stack.Screen name="preview" options={commonScreenOptions} />
+            <Stack.Screen name="result" options={commonScreenOptions} />
+            <Stack.Screen name="error" options={commonScreenOptions} />
+            <Stack.Screen name="cosplaydex" options={commonScreenOptions} />
+            <Stack.Screen name="settings" options={commonScreenOptions} />
+            <Stack.Screen name="login" options={commonScreenOptions} />
+            <Stack.Screen name="signup" options={commonScreenOptions} />
+            <Stack.Screen name="profile" options={commonScreenOptions} />
+          </Stack>
+        </GestureHandlerRootView>
       </MenuProvider>
+      </UserProvider>
   );
 }
